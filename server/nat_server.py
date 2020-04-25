@@ -14,9 +14,9 @@ register_servers = {}
 nat_config = {}
 #sock_connect_queue = queue.Queue(10)
 
-evn="develop"
+evn="product"
 # 远程内网注册端口
-nat_port = 6781
+nat_port = 6783
 #客户端请求端口
 server_port = 8080
 nat_sock_connects = {}
@@ -50,8 +50,10 @@ def nat_register():
         register_sock.listen()
         while True:
             sock_connect,addr = register_sock.accept()
-            if str(addr[1]) in nat_sock_connects.keys():
-                data = sock_connect.recv(1024)
+           
+            #print('{0}:{1} connect...'.format(addr[0],addr[1]))
+	    if str(addr[1]) in nat_sock_connects.keys():
+		data = sock_connect.recv(1024)
                 if b'HEART' in data:
                     register_server.sendall('KEEPALIVE')
             else:
