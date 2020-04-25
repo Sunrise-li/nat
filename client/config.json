@@ -1,0 +1,22 @@
+[
+    {
+        "server_name":"ssh",
+        "local_port":22,
+        "local_addr":"",
+        "nat_port":8022,
+        "net_addr":"127.0.0.1",
+        "net_port":6789,
+        "authentication":true,
+        "timeout":1000
+    },
+    {
+        "server_name":"ssh",
+        "local_port":22,
+        "local_addr":"",
+        "nat_port":8022,
+        "net_addr":"127.0.0.1",
+        "net_port":6789,
+        "authentication":false,
+        "timeout":1000
+    }
+]

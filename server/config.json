@@ -1,0 +1,16 @@
+[
+    {
+        "server_name":"ssh",
+        "src_port":22,
+        "dst_port":8022,
+        "authentication":true,
+        "timeout":1000
+    },
+    {
+        "server_name":"mysql",
+        "src_port":3306,
+        "dst_port":8889,
+        "authentication":false,
+        "timeout":1000
+    }
+]
