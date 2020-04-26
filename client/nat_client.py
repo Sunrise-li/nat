@@ -45,10 +45,11 @@ def create_net_keepalive_connect(config):
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
     print('nat port {0}'.format(nat_port))
-    sock.bind(('0.0.0.0',nat_port))
+    # sock.bind(('0.0.0.0',nat_port))
   
     sock.connect((net_addr,net_port))
-    data = r'{0}:{1}'.format(server_name,nat_port)
+    data = ('{0}:{1}'.format(server_name,nat_port)).encode('utf8')
+
     sock.sendall(data)
     nat_socks[server_name] = sock
 
