@@ -44,8 +44,12 @@ def create_net_keepalive_connect(config):
     net_port = config['net_port']
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
-    sock.bind(('',nat_port))
+    print('nat port {0}'.format(nat_port))
+    sock.bind(('0.0.0.0',nat_port))
+  
     sock.connect((net_addr,net_port))
+    data = r'{0}:{1}'.format(server_name,nat_port)
+    sock.sendall(data)
     nat_socks[server_name] = sock
 
 #和本地服务创建长连接 
@@ -148,6 +152,7 @@ def init_nat():
             net_port   :内网穿透服务注册端口
         
         """
+        print(config)
         create_local_server_keepalive_connect(config)
         create_net_keepalive_connect(config)
 

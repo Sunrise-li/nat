@@ -31,7 +31,7 @@ class Server:
 
     def init_server_sock(self):
         self.server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.server.bind(('0.0.0.0',self.dst_port))
+        self.server.bind(('0.0.0.0c',self.dst_port))
         self.server.listen()
 
 """ 初始化内网连接 """
@@ -57,7 +57,10 @@ def nat_register():
                 if b'HEART' in data:
                     register_server.sendall('KEEPALIVE')
                 else:
-                    nat_sock_connects[str(addr[1])] = sock_connect
+                    server_info = data.dcode('utf8')
+                    port = server_info.split(':')[1]
+
+                    nat_sock_connects[port)] = sock_connect
 
         
 
