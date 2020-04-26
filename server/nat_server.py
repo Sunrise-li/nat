@@ -113,11 +113,11 @@ def start():
                 src_port = str(ser_sock.src_port)
                 if str(src_port) in nat_sock_connects.keys():
                     nat_sock = nat_sock_connects[src_port]
-                    print('向 {0} 服务 转发数据'.format(ser_sock.server_name))
+                    print('向 {0} 服务 转发数据'.format(ser_sock.name))
                     #超时时间
                     timeout = ser_sock.timeout
                     #交给线程池处理
-                    worker_pool.submit(ip_forword,nat_sock,client,timeout,ser_sock.server_name)
+                    worker_pool.submit(ip_forword,nat_sock,client,timeout,ser_sock.name)
 
 
 """初始化服务器映射端口进程"""  
