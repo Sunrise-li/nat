@@ -59,8 +59,7 @@ def nat_register():
                 else:
                     server_info = data.dcode('utf8')
                     port = server_info.split(':')[1]
-
-                    nat_sock_connects[port)] = sock_connect
+                    nat_sock_connects[port] = sock_connect
 
         
 
