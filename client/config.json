@@ -1,20 +1,10 @@
 [
     {
-        "server_name":"ssh",
-        "local_port":22,
+        "server_name":"redis",
+        "local_port":6379,
         "local_addr":"",
-        "nat_port":8022,
-        "net_addr":"127.0.0.1",
-        "net_port":6789,
-        "authentication":true,
-        "timeout":1000
-    },
-    {
-        "server_name":"ssh",
-        "local_port":22,
-        "local_addr":"",
-        "nat_port":8022,
-        "net_addr":"127.0.0.1",
+        "nat_port":6389,
+        "net_addr":"120.53.22.183",
         "net_port":6789,
         "authentication":false,
         "timeout":1000

@@ -5,5 +5,12 @@
         "dst_port":8012,
         "authentication":true,
         "timeout":1000
+    },
+    {
+        "server_name":"redis",
+        "src_port":6389,
+        "dst_port":6379,
+        "authentication":true,
+        "timeout":1000
     }
 ]
