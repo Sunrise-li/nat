@@ -157,8 +157,10 @@ def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
                     activity = False
                 #判断文件描述符
                 if b'HEART' in data:
-                    keep_alive = 'KEEPALIVE'.encode('utf8')
-                    sock.sendall(keep_alive)
+                    if sock.fileno == client_fd:
+                        keep_alive = 'KEEPALIVE'.encode('utf8')
+                        sock.sendall(keep_alive)
+                    continue
                 if sock.fileno() == server_fd:
                     sock_client.sendall(data)
                 elif sock.fileno() == client_fd:
