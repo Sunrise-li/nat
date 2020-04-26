@@ -112,7 +112,7 @@ def start():
                 print('src_port:{0}  keys:{1}'.format(ser_sock.src_port,nat_sock_connects.keys()))
                 src_port = str(ser_sock.src_port)
                 if str(src_port) in nat_sock_connects.keys():
-                    nat_sock = nat_sock_connects[ser_sock.src_port]
+                    nat_sock = nat_sock_connects[src_port]
                     print('向 {0} 服务 转发数据'.format(ser_sock.server_name))
                     #超时时间
                     timeout = ser_sock.timeout
