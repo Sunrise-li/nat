@@ -106,6 +106,7 @@ def start():
                 if fd in servers_fd.keys():
                     client,addr = server.accept()
                     print(' client {0} 连接成功...'.format(str(addr)))
+                    print('fd :{0} keys: {1}'.format(fd,servers_fd.keys()))
                     #转发请求
                     #查找对应端口好进行数据转发
                     ser_sock = servers_fd[fd]
