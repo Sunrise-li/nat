@@ -78,7 +78,7 @@ def nat_handler(server_name,server,nat_sock):
             fd = sock.fileno()
             try:
                 data = sock.recv(0xffff)
-                print('data : {0}'.format(data))
+                print('data : {0}'.format(data.decode('utf-8')))
                 if not data:
                     sock.close()
                 if b'KEEPALIVE' in data:
