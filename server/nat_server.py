@@ -108,8 +108,10 @@ def start():
                 #查找对应端口好进行数据转发
                 ser_sock = servers_fd[fd]
                 #通过端口好找到转发的socket进行转发
+                print('正在查找转发表....')
                 if str(ser_sock.src_port) in nat_sock_connects.keys():
                     nat_sock = nat_sock_connects[ser_sock.src_port]
+                    print('向 {0} 服务 转发数据'.format(ser_sock.server_name))
                     #超时时间
                     timeout = ser_sock.timeout
                     #交给线程池处理
@@ -130,6 +132,8 @@ def register_server():
   
 #两个sock 之间转发数据包
 def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
+
+    print('--------开始数据转发---------')
     sock_server = sock_server
     sock_client = sock_client
     read_list = [sock_client,sock_server]
@@ -138,19 +142,22 @@ def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
     client_fd = sock_client.fileno()
     activity = True
     while activity:
-        rs,ws,es = select.select(read_list,[],[],timeout)
-        if not rs and not ws and not es:
-            activity = False
-        for sock in rs:
-            data = sock_server.recv(read_len)
-            print('data {0}'.format(data))
-            if not data and server_name != 'redis':
+        try:
+            rs,ws,es = select.select(read_list,[],[],timeout)
+            if not rs and not ws and not es:
                 activity = False
-            #判断文件描述符
-            if sock.fileno() == server_fd:
-                sock_client.sendall(data)
-            elif sock.fileno() == client_fd:
-                sock_server.sendall(data)
+            for sock in rs:
+                data = sock_server.recv(read_len)
+                print('data {0}'.format(data))
+                if not data and server_name != 'redis':
+                    activity = False
+                #判断文件描述符
+                if sock.fileno() == server_fd:
+                    sock_client.sendall(data)
+                elif sock.fileno() == client_fd:
+                    sock_server.sendall(data)
+        except Exception as e:
+            print(e)
     print('client {0} server {1} disconnect '.format(sock_client.getsockname,sock_server.getsockname))
 
 
