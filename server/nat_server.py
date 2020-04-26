@@ -56,10 +56,10 @@ def nat_register():
                 data = sock_connect.recv(1024)
                 if b'HEART' in data:
                     register_server.sendall('KEEPALIVE')
-                else:
-                    server_info = data.dcode('utf8')
-                    port = server_info.split(':')[1]
-                    nat_sock_connects[port] = sock_connect
+            else:
+                server_info = data.dcode('utf8')
+                port = server_info.split(':')[1]
+                nat_sock_connects[port] = sock_connect
 
         
 
