@@ -82,34 +82,38 @@ def nat_register():
 #                 client_socket = server_sock.accept()
 #                 worker_pool.submit(ip_forword,nat_server,client_socket)
 def start():
-    nat_server_mapper = {}
+    #nat_server_mapper = {}
     server_socks = []
-    server_timeout = {}
+    # server_timeout = {}
+    # server_names = {}
+    servers_fd = {}
     for server in register_servers.values():
 
         server_socks.append(server.server)
         #sock 和客户端口映射
-        nat_server_mapper[server.server.fileno()] = str(server.src_port)
-        server_timeout[server.server.fileno()] = server.timeout
+        servers_fd[server.server.fileno()] = server
+        # nat_server_mapper[server.server.fileno()] = str(server.src_port)
+        # server_timeout[server.server.fileno()] = server.timeout
+        # server_names[server.server.fileno()] = server.server_name
     print('keys : {0}'.format(nat_sock_connects.keys()))
     while True:
         rs,ws,es = select.select(server_socks,[],[])
         for server in rs:
             # 判断服务是否已经注册
             fd = server.fileno()
-            if fd in nat_server_mapper.keys():
+            if fd in servers_fd.keys():
                 client,addr = server.accept()
                 print(' client {0} 连接成功...'.format(str(addr)))
                 #转发请求
                 #查找对应端口好进行数据转发
-                src_port = nat_server_mapper[fd]
+                ser_sock = servers_fd[fd]
                 #通过端口好找到转发的socket进行转发
-                if src_port in nat_sock_connects.keys():
-                    nat_sock = nat_sock_connects[src_port]
+                if str(ser_sock.src_port) in nat_sock_connects.keys():
+                    nat_sock = nat_sock_connects[ser_sock.src_port]
                     #超时时间
-                    timeout = server_timeout[fd]
+                    timeout = ser_sock.timeout
                     #交给线程池处理
-                    worker_pool.submit(ip_forword,nat_sock,client,timeout)
+                    worker_pool.submit(ip_forword,nat_sock,client,timeout,ser_sock.server_name)
 
 
 """初始化服务器映射端口进程"""  
@@ -125,7 +129,7 @@ def register_server():
     
   
 #两个sock 之间转发数据包
-def ip_forword(sock_server,sock_client,timeout,read_len=0xFFFF):
+def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
     sock_server = sock_server
     sock_client = sock_client
     read_list = [sock_client,sock_server]
@@ -138,16 +142,13 @@ def ip_forword(sock_server,sock_client,timeout,read_len=0xFFFF):
         if not rs and not ws and not es:
             activity = False
         for sock in rs:
+            data = sock_server.recv(read_len)
+            if not data and server_name != 'redis':
+                activity = False
             #判断文件描述符
             if sock.fileno() == server_fd:
-                data = sock_server.recv(read_len)
-                if not data:
-                    activity = False
                 sock_client.sendall(data)
             elif sock.fileno() == client_fd:
-                data = sock_client.recv(read_len)
-                if not data:
-                    activity = False
                 sock_server.sendall(data)
     print('client {0} server {1} disconnect '.format(sock_client.getsockname,sock_server.getsockname))
 
