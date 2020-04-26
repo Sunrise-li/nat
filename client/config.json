@@ -8,5 +8,15 @@
         "net_port":6783,
         "authentication":false,
         "timeout":1000
+    },
+    {
+        "server_name":"redis",
+        "local_port":6379,
+        "local_addr":"127.0.0.1",
+        "nat_port":5678,
+        "net_addr":"120.53.22.183",
+        "net_port":6783,
+        "authentication":false,
+        "timeout":1000
     }
 ]

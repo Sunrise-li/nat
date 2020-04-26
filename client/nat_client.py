@@ -52,6 +52,7 @@ def create_net_keepalive_connect(config):
 
     sock.send(data)
     nat_socks[server_name] = sock
+    return sock
 
 #和本地服务创建长连接 
 def create_local_server_keepalive_connect(config):
@@ -64,6 +65,7 @@ def create_local_server_keepalive_connect(config):
     #server.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
     server.connect((local_addr,local_port))
     local_servers[server_name] = server
+    return server
 
 def nat_handler(server_name,server,nat_sock):
     server_name = server_name
@@ -80,7 +82,8 @@ def nat_handler(server_name,server,nat_sock):
             try:
                 data = sock.recv(0xffff)
                 if not data:
-                     continue
+                    sock.close()
+                    read_list.remove(sock)
                 if b'KEEPALIVE' in data:
                     continue;
                 if fd == s_fd:
@@ -92,10 +95,10 @@ def nat_handler(server_name,server,nat_sock):
             except Exception as e:
                 if fd == s_fd:
                     config = nat_config[server_name]
-                    create_local_server_keepalive_connect(config)
+                    read_list.append(create_local_server_keepalive_connect(config))
                 elif fd == n_fd:
                     config = nat_config[server_name]
-                    create_net_keepalive_connect(config)
+                    read_list.append(create_net_keepalive_connect(config))
 
 def start():
     load_config()
