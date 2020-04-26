@@ -110,7 +110,7 @@ def start():
                     #查找对应端口好进行数据转发
                     ser_sock = servers_fd[fd]
                     #通过端口好找到转发的socket进行转发
-                    print('正在查找转发表....')
+                    print('正在查找转发表....{0}'.format(ser_sock.name))
                     print('src_port:{0}  keys:{1}'.format(ser_sock.src_port,nat_sock_connects.keys()))
                     src_port = str(ser_sock.src_port)
                     if str(src_port) in nat_sock_connects.keys():
