@@ -49,15 +49,15 @@ def nat_register():
         register_sock.bind(('',nat_port))
         register_sock.listen()
         while True:
+    
             sock_connect,addr = register_sock.accept()
-           
-            #print('{0}:{1} connect...'.format(addr[0],addr[1]))
-	    if str(addr[1]) in nat_sock_connects.keys():
-		data = sock_connect.recv(1024)
+            print('{0}:{1} connect...'.format(addr[0],addr[1]))
+            if str(addr[1]) in nat_sock_connects.keys():
+                data = sock_connect.recv(1024)
                 if b'HEART' in data:
                     register_server.sendall('KEEPALIVE')
-            else:
-                nat_sock_connects[str(addr[1])] = sock_connect
+                else:
+                    nat_sock_connects[str(addr[1])] = sock_connect
 
         
 
