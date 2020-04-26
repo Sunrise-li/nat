@@ -155,7 +155,7 @@ def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
             if not rs and not ws and not es:
                 activity = False
             for sock in rs:
-                data = sock_server.recv(read_len)
+                data = sock.recv(read_len)
                 print('data {0}'.format(data))
                 if not data :
                     activity = False
