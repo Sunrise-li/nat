@@ -31,7 +31,7 @@ class Server:
 
     def init_server_sock(self):
         self.server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        self.server.bind(('0.0.0.0c',self.dst_port))
+        self.server.bind(('0.0.0.0',self.dst_port))
         self.server.listen()
 
 """ 初始化内网连接 """
