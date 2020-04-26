@@ -61,7 +61,7 @@ def create_local_server_keepalive_connect(config):
     local_port = config['local_port']
     local_addr = config['local_addr']
     server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    server.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
+    #server.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
     server.connect((local_addr,local_port))
     local_servers[server_name] = server
 
@@ -72,20 +72,22 @@ def nat_handler(server_name,server,nat_sock):
     s_fd = server.fileno()
     n_fd  = nat_sock.fileno()
     read_list = [server,nat_sock]
+    print('s_fd {0} n_fd {1}'.format(s_fd,n_fd))
     while True:
         rs,ws,es = select.select(read_list,[],[])
         for sock in rs:
             fd = sock.fileno()
             try:
                 data = sock.recv(0xffff)
-                print('data : {0}'.format(data.decode('utf-8')))
-                if not data:
-                    sock.close()
-                if b'KEEPALIVE' in data:
-                    continue;
+                #if not data:
+                #     continue
+                # if b'KEEPALIVE' in data:
+                #     continue;
                 if fd == s_fd:
+                    #print('send : {0}'.format(data.decode('utf-8')))
                     nat_sock.sendall(data)
                 elif fd == n_fd:
+                    print('receive : {0}'.format(data.decode('utf-8')))
                     server.sendall(data)
             except Exception as e:
                 if fd == s_fd:
