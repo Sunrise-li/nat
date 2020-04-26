@@ -142,6 +142,8 @@ def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
     #sock 文件描述符
     server_fd = sock_server.fileno()
     client_fd = sock_client.fileno()
+    print(server_fd)
+    print(client_fd)
     activity = True
     while activity:
         try:
@@ -151,7 +153,7 @@ def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
             for sock in rs:
                 data = sock_server.recv(read_len)
                 print('data {0}'.format(data))
-                if not data and server_name != 'redis':
+                if not data :
                     activity = False
                 #判断文件描述符
                 if sock.fileno() == server_fd:
