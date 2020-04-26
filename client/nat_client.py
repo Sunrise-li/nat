@@ -37,11 +37,12 @@ def heart():
 #和公网服务器创建长连接
 def create_net_keepalive_connect(config):
     server_name = config['server_name']
-    del nat_socks[server_name]
+    if server_name in nat_socks.keys():
+        del nat_socks[server_name]
     nat_port = config['nat_port']
     net_addr = config['net_addr']
     net_port = config['net_port']
-    sock = socket.socket(socket.AF_INE,socket.SOCK_STREAM)
+    sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
     sock.bind(('',nat_port))
     sock.connect((net_addr,net_port))
@@ -50,10 +51,11 @@ def create_net_keepalive_connect(config):
 #和本地服务创建长连接 
 def create_local_server_keepalive_connect(config):
     server_name = config['server_name']
-    del local_servers[server_name]
+    if server_name in local_servers.keys():
+        del local_servers[server_name]
     local_port = config['local_port']
     local_addr = config['local_addr']
-    server = socket.socket(socket.AF_INE,socket.SOCK_STREAM)
+    server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
     server.connect((local_addr,local_port))
     local_servers[server_name] = server
@@ -63,7 +65,7 @@ def nat_handler(server_name,server,nat_sock):
     server = server
     nat_sock = nat_sock
     s_fd = server.fileno()
-    n_fd  = nat_sock.filneo()
+    n_fd  = nat_sock.fileno()
     read_list = [server,nat_sock]
     while True:
         rs,ws,es = select.select(read_list,[],[])
@@ -71,6 +73,7 @@ def nat_handler(server_name,server,nat_sock):
             fd = sock.fileno()
             try:
                 data = sock.recv(0xffff)
+                print('data : {0}'.format(data))
                 if not data:
                     sock.close()
                 if b'KEEPALIVE' in data:
