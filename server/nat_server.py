@@ -52,12 +52,12 @@ def nat_register():
     
             sock_connect,addr = register_sock.accept()
             print('{0}:{1} connect...'.format(addr[0],addr[1]))
+            data = sock_connect.recv(1024)
             if str(addr[1]) in nat_sock_connects.keys():
-                data = sock_connect.recv(1024)
                 if b'HEART' in data:
                     register_server.sendall('KEEPALIVE')
             else:
-                server_info = data.dcode('utf8')
+                server_info = data.decode('utf8')
                 port = server_info.split(':')[1]
                 nat_sock_connects[port] = sock_connect
 
