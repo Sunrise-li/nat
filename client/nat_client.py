@@ -108,6 +108,9 @@ def start():
     for p in process_list:
         p.start()
 
+    #开启心跳
+    heart()
+
 def main(start):
     start()
 
