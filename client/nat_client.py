@@ -22,14 +22,14 @@ def heart():
     while(True):
         for server_name in local_servers.keys():
             try:
-                local_servers[server_name].sendall(b'HEART')
+                local_servers[server_name].send(b'HEART')
             except Exception as e:
                 config = nat_config[server_name]
                 create_local_server_keepalive_connect(config)
 
         for server_name in nat_socks.keys():
             try:
-                nat_socks[server_name].sendall(b'HEART')
+                nat_socks[server_name].send(b'HEART')
             except Exception as e:
                 config = nat_config[server_name]
                 create_net_keepalive_connect(config)
@@ -50,7 +50,7 @@ def create_net_keepalive_connect(config):
     sock.connect((net_addr,net_port))
     data = ('{0}:{1}'.format(server_name,nat_port)).encode('utf8')
 
-    sock.sendall(data)
+    sock.send(data)
     nat_socks[server_name] = sock
 
 #和本地服务创建长连接 
@@ -79,16 +79,16 @@ def nat_handler(server_name,server,nat_sock):
             fd = sock.fileno()
             try:
                 data = sock.recv(0xffff)
-                #if not data:
-                #     continue
-                # if b'KEEPALIVE' in data:
-                #     continue;
+                if not data:
+                     continue
+                if b'KEEPALIVE' in data:
+                    continue;
                 if fd == s_fd:
                     #print('send : {0}'.format(data.decode('utf-8')))
-                    nat_sock.sendall(data)
+                    nat_sock.send(data)
                 elif fd == n_fd:
-                    print('receive : {0}'.format(data.decode('utf-8')))
-                    server.sendall(data)
+                    print('receive : {0}'.format(data))
+                    server.send(data)
             except Exception as e:
                 if fd == s_fd:
                     config = nat_config[server_name]
@@ -111,7 +111,7 @@ def start():
         p.start()
 
     #开启心跳
-    heart()
+    #heart()
 
 def main(start):
     start()
@@ -144,7 +144,7 @@ def main(start):
 #             if fd in sock_fd_mapping.keys():
 #                 dst_fd = sock_fd_mapping[fd]
 #                 if dst_fd and dst_fd in socks.keys():
-#                     socks[dst_fd].sendall(data)
+#                     socks[dst_fd].send(data)
 
 
 def init_nat():

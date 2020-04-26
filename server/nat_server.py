@@ -56,7 +56,7 @@ def nat_register():
             data = sock_connect.recv(1024)
             if str(addr[1]) in nat_sock_connects.keys():
                 if b'HEART' in data:
-                    register_server.sendall('KEEPALIVE')
+                    register_server.send('KEEPALIVE')
             else:
                 server_info = data.decode('utf8')
                 port = server_info.split(':')[1]
@@ -156,19 +156,19 @@ def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
                 activity = False
             for sock in rs:
                 data = sock.recv(read_len)
-                print('data {0}'.format(data.decode('utf8')))
-                if not data :
-                    activity = False
+                print('data {0}'.format(data))
+                # if not data :
+                #     activity = False
                 #判断文件描述符
                 if b'HEART' in data:
                     if sock.fileno == client_fd:
                         keep_alive = 'KEEPALIVE'.encode('utf8')
-                        sock.sendall(keep_alive)
+                        sock.send(keep_alive)
                     continue
                 if sock.fileno() == server_fd:
-                    sock_client.sendall(data)
+                    sock_client.send(data)
                 elif sock.fileno() == client_fd:
-                    sock_server.sendall(data)
+                    sock_server.send(data)
         except Exception as e:
             traceback.print_exc()
     print('client {0} server {1} disconnect '.format(sock_client.getsockname,sock_server.getsockname))
