@@ -5,12 +5,17 @@ import threading
 import json
 import time
 import traceback
+import rsa 
 from concurrent.futures import ThreadPoolExecutor
 
 worker_pool = ThreadPoolExecutor(20)
 #服务注册
 register_servers = {}
 
+#结束符
+EOF = b'\r\n\r\n0000\r\n\r\n'
+#是否启动ssh身份验证
+authentication = True
 #nat配置
 nat_config = {}
 #sock_connect_queue = queue.Queue(10)
@@ -94,7 +99,7 @@ def register_server():
             print('erro server {0}'.format(config['server_name']))
     
 #两个sock 之间转发数据包
-def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
+def tcp_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
 
     print('--------开始数据转发---------')
     sock_server = sock_server
