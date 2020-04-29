@@ -1,8 +1,8 @@
 [
     {
         "server_name":"ssh",
-        "local_port":22,
-        "local_addr":"192.168.2.10",
+        "server_port":22,
+        "server_addr":"192.168.2.10",
         "nat_port":4567,
         "net_addr":"120.53.22.183",
         "net_port":6783,
@@ -11,8 +11,8 @@
     },
     {
         "server_name":"redis",
-        "local_port":6379,
-        "local_addr":"127.0.0.1",
+        "server_port":6379,
+        "server_addr":"127.0.0.1",
         "nat_port":5678,
         "net_addr":"120.53.22.183",
         "net_port":6783,

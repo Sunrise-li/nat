@@ -37,51 +37,21 @@ class Server:
 
 """ 初始化内网连接 """
 def nat_register():
-    if evn == 'develop':
-        sock_connect = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        sock_connect.connect(('120.53.22.183',22))
-        nat_sock_connects['22'] = sock_connect
-        sock_connect2 = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        sock_connect2.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
-        sock_connect2.connect(('120.53.22.183',3306))
-        nat_sock_connects['3306'] = sock_connect2
-    else:
-        register_sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        register_sock.bind(('',nat_port))
-        register_sock.listen()
-        while True:
-    
-            sock_connect,addr = register_sock.accept()
-            print('{0}:{1} connect...'.format(addr[0],addr[1]))
-            data = sock_connect.recv(1024)
-            if str(addr[1]) in nat_sock_connects.keys():
-                if b'HEART' in data:
-                    register_server.send('KEEPALIVE')
-            else:
-                server_info = data.decode('utf8')
-                port = server_info.split(':')[1]
-                nat_sock_connects[port] = sock_connect
-
-        
-
-
+    register_sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    register_sock.bind(('',nat_port))
+    register_sock.listen()
+    while True:
+        sock_connect,addr = register_sock.accept()
+        print('{0}:{1} connect...'.format(addr[0],addr[1]))
+        data = sock_connect.recv(1024)
+        if str(addr[1]) in nat_sock_connects.keys():
+            if b'HEART' in data:
+                register_server.send('KEEPALIVE')
+        else:
+            server_info = data.decode('utf8')
+            port = server_info.split(':')[1]
+            nat_sock_connects[port] = sock_connect
 """ 接收处理客户端请求 """
-# def ssh_server():
-#     server_sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-#     server_sock.bind(('',server_port))
-#     server_sock.listen()
-#     read_list = [server_sock]
-#     ssh_listen_port = 8011
-#     server_sock_fd = server_sock.fileno()
-#     while True:
-#         if ssh_listen_port not in nat_sock_connects.keys():
-#             continue
-#         nat_server = nat_sock_connects[ssh_listen_port]
-#         rs,ws,es = select.select(read_list,[],[])
-#         for sock in rs:
-#             if sock.fileno() == server_sock_fd:
-#                 client_socket = server_sock.accept()
-#                 worker_pool.submit(ip_forword,nat_server,client_socket)
 def start():
     #nat_server_mapper = {}
     server_socks = []
@@ -89,14 +59,9 @@ def start():
     # server_names = {}
     servers_fd = {}
     for server in register_servers.values():
-
         server_socks.append(server.server)
         #sock 和客户端口映射
         servers_fd[server.server.fileno()] = server
-        # nat_server_mapper[server.server.fileno()] = str(server.src_port)
-        # server_timeout[server.server.fileno()] = server.timeout
-        # server_names[server.server.fileno()] = server.server_name
-    print('keys : {0}'.format(nat_sock_connects.keys()))
     while True:
         try:
             rs,ws,es = select.select(server_socks,[],[])
@@ -105,18 +70,13 @@ def start():
                 fd = server.fileno()
                 if fd in servers_fd.keys():
                     client,addr = server.accept()
-                    print(' client {0} 连接成功...'.format(str(addr)))
-                    print('fd :{0} keys: {1}'.format(fd,servers_fd.keys()))
-                    #转发请求
+                     #转发请求
                     #查找对应端口好进行数据转发
                     ser_sock = servers_fd[fd]
                     #通过端口好找到转发的socket进行转发
-                    print('正在查找转发表....{0}'.format(ser_sock.name))
-                    print('src_port:{0}  keys:{1}'.format(ser_sock.src_port,nat_sock_connects.keys()))
                     src_port = str(ser_sock.src_port)
                     if str(src_port) in nat_sock_connects.keys():
                         nat_sock = nat_sock_connects[src_port]
-                        print('向 {0} 服务 转发数据'.format(ser_sock.name))
                         #超时时间
                         timeout = ser_sock.timeout
                         #交给线程池处理
@@ -126,16 +86,13 @@ def start():
 
 """初始化服务器映射端口进程"""  
 def register_server():
-    print('start register server.....')
     for server_name in nat_config.keys():
         config = nat_config[server_name]
         if config['server_name'] and str(config['src_port']) and str(config['dst_port']):
             register_servers[server_name] = Server(config)
-            print('server {0} register success...'.format(config['server_name']))
         else:
-            print('erro server {0} register faild'.format(config['server_name']))
+            print('erro server {0}'.format(config['server_name']))
     
-  
 #两个sock 之间转发数据包
 def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
 
@@ -146,8 +103,6 @@ def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
     #sock 文件描述符
     server_fd = sock_server.fileno()
     client_fd = sock_client.fileno()
-    print(server_fd)
-    print(client_fd)
     activity = True
     while activity:
         try:
@@ -156,10 +111,6 @@ def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
                 activity = False
             for sock in rs:
                 data = sock.recv(read_len)
-                print('data {0}'.format(data))
-                # if not data :
-                #     activity = False
-                #判断文件描述符
                 if b'HEART' in data:
                     if sock.fileno == client_fd:
                         keep_alive = 'KEEPALIVE'.encode('utf8')
@@ -171,8 +122,6 @@ def ip_forword(sock_server,sock_client,timeout,server_name,read_len=0xFFFF):
                     sock_server.send(data)
         except Exception as e:
             traceback.print_exc()
-    print('client {0} server {1} disconnect '.format(sock_client.getsockname,sock_server.getsockname))
-
 
 def load_config():
     config_file = open('config.json','r')

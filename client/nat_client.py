@@ -26,7 +26,6 @@ def heart():
             except Exception as e:
                 config = nat_config[server_name]
                 create_local_server_keepalive_connect(config)
-
         for server_name in nat_socks.keys():
             try:
                 nat_socks[server_name].send(b'HEART')
@@ -38,15 +37,13 @@ def heart():
 def create_net_keepalive_connect(config):
     server_name = config['server_name']
     if server_name in nat_socks.keys():
+        nat_socks[server_name].close()
         del nat_socks[server_name]
     nat_port = config['nat_port']
     net_addr = config['net_addr']
     net_port = config['net_port']
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
-    print('nat port {0}'.format(nat_port))
-    # sock.bind(('0.0.0.0',nat_port))
-  
     sock.connect((net_addr,net_port))
     data = ('{0}:{1}'.format(server_name,nat_port)).encode('utf8')
 
@@ -58,14 +55,25 @@ def create_net_keepalive_connect(config):
 def create_local_server_keepalive_connect(config):
     server_name = config['server_name']
     if server_name in local_servers.keys():
+        nat_socks[server_name].close()
         del local_servers[server_name]
-    local_port = config['local_port']
-    local_addr = config['local_addr']
+    local_port = config['server_port']
+    local_addr = config['server_addr']
     server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    #server.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
     server.connect((local_addr,local_port))
     local_servers[server_name] = server
     return server
+
+def server_handler():
+    server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    server_fd = server.fileno()
+    read_list = [server]
+    while True:
+        rs,ws,es = select.select(read_list,[],[],1000)
+        for sock in rs:
+            if sock.fileno() == server_fd :
+                
+            
 
 def nat_handler(server_name,server,nat_sock):
     server_name = server_name
@@ -74,23 +82,22 @@ def nat_handler(server_name,server,nat_sock):
     s_fd = server.fileno()
     n_fd  = nat_sock.fileno()
     read_list = [server,nat_sock]
-    print('s_fd {0} n_fd {1}'.format(s_fd,n_fd))
     while True:
         rs,ws,es = select.select(read_list,[],[])
         for sock in rs:
             fd = sock.fileno()
             try:
                 data = sock.recv(0xffff)
-                if not data:
-                    sock.close()
-                    read_list.remove(sock)
+               
                 if b'KEEPALIVE' in data:
                     continue;
                 if fd == s_fd:
-                    #print('send : {0}'.format(data.decode('utf-8')))
                     nat_sock.send(data)
                 elif fd == n_fd:
-                    print('receive : {0}'.format(data))
+                    if not data:
+                        server.close()
+                        read_list.remove(server)
+                        break
                     server.send(data)
             except Exception as e:
                 if fd == s_fd:
@@ -99,7 +106,6 @@ def nat_handler(server_name,server,nat_sock):
                 elif fd == n_fd:
                     config = nat_config[server_name]
                     read_list.append(create_net_keepalive_connect(config))
-
 def start():
     load_config()
     init_nat()
@@ -116,39 +122,8 @@ def start():
     #开启心跳
     #heart()
 
-def main(start):
+def main():
     start()
-
-
-# def start():
-#     sock_fd_mapping  = {}
-#     socks  = {}
-#     read_list = []
-#     for server_name in nat_socks.keys():
-#         nat = nat_socks[server_name]
-#         server = local_servers[server_name]
-#         read_list.append(nat)
-#         read_list.append(server)
-#         nat_fd = nat.fileno()
-#         server_fd = server.fileno()
-#         sock_fd_mapping[nat_fd] = server_fd
-#         sock_fd_mapping[server_fd] = nat_fd
-#         socks[nat_fd] = nat
-#         socks[server_fd] = server
-#     while True:
-#         rs,ws,es = select.select(read_list,[],[])
-#         for sock in rs:
-#             fd = sock.fileno()
-#             data = sock.recv(0xffff)
-#             if not data:
-#                 sock.close()
-#             if b'KEEPALIVE' in data:
-#                 continue;
-#             if fd in sock_fd_mapping.keys():
-#                 dst_fd = sock_fd_mapping[fd]
-#                 if dst_fd and dst_fd in socks.keys():
-#                     socks[dst_fd].send(data)
-
 
 def init_nat():
     for config in nat_config.values():
@@ -159,9 +134,7 @@ def init_nat():
             nat_port   :本地内网穿透监听端口
             net_addr   :内网穿透服务器地址
             net_port   :内网穿透服务注册端口
-        
         """
-        print(config)
         create_local_server_keepalive_connect(config)
         create_net_keepalive_connect(config)
 
@@ -172,7 +145,5 @@ def load_config():
     config_objs = json.loads(config)
     for conf in config_objs:
         nat_config[conf['server_name']] = conf
-
-
 if __name__ == "__main__":
     start()
