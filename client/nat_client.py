@@ -64,7 +64,8 @@ def register_nat_keepalive_connect(config):
         del nat_clients[server_addr]
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
-    sock.connect((net_server_ip,nat_server_port))
+    print('connect {0}:{1}'.format(net_server_ip,register_server_port))
+    sock.connect((net_server_ip,register_server_port))
     #ssh:8022
     #计算本地唯一摘要
 

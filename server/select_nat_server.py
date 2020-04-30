@@ -61,7 +61,7 @@ def register_nat_client(port):
             id_auth = str(snowFlake.id())
             print(id_auth)
             #发送认证信息
-            nat_client.send(rsa_encrypt(id_auth).encode('utf8'))
+            nat_client.send(rsa_encrypt(id_auth))
             #接受认证结果
             auth_res = nat_client.recv(buff_size).decode('utf8')
             print(auth_res)
