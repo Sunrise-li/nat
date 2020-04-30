@@ -181,7 +181,7 @@ def init_process(config):
             rs,ws,es = select.select([nat_client],[],[])
             for sock in rs:
                 print(sock.recv(1024))
-                #pool.submit(server_handler,nat_client,timeout)
+                pool.submit(server_handler,nat_client,timeout)
         except Exception as e:
             traceback.print_exc()
     if local_server_name in alive_processs.keys():

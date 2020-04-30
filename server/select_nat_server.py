@@ -91,6 +91,8 @@ def init_server_process(port,timeout):
     while True:
         try:
             client,addr = server.accept()
+            print('clientaddr:{0}'.format(addr))
+            print('key {0} \n keys {1}'.format(key,nat_clients.keys))
             if key in nat_clients.keys():
                 nat_client = nat_clients[key].get()
                 pool.submit(tcp_forword,nat_client,client,timeout)
