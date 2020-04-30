@@ -75,7 +75,7 @@ def register_nat_client(port):
                     nat_clients[key] = queue.Queue()
                     nat_clients[key].put(nat_client)
                 else:
-                    nat_client[key].put(nat_client)
+                    nat_clients[key].put(nat_client)
                 if key not in server_processs.keys():
                     p = process.Process(target=init_server_process,args=(port,timeout,))
                     server_processs[key] = p
