@@ -9,12 +9,11 @@ import os
 import hashlib
 import traceback
 import multiprocessing as process
+import logging as log
 from concurrent.futures import ThreadPoolExecutor 
 from concurrent.futures import ThreadPoolExecutor
 
-
-
-worker_pool = ThreadPoolExecutor(20)
+log.basicConfig(format='%(asctime)s - pid:%(process)d - tid:%(thread)d - [line:%(lineno)d] - %(levelname)s: %(message)s',level=log.INFO)
 #配置文件
 nat_config = {}
 #nat服务 文件描述符  和本地服务地址映射 用于多服务注册转发
@@ -63,8 +62,8 @@ def register_nat_keepalive_connect(config):
         nat_clients[server_addr].close()
         del nat_clients[server_addr]
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
-    print('connect {0}:{1}'.format(net_server_ip,register_server_port))
+    #sock.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
+    log.info('start registration service {0} - {1}:{2} remote host {3}:{4}'.format(local_server_name,local_server_ip,local_server_port,net_server_ip,nat_server_port))
     sock.connect((net_server_ip,register_server_port))
     #ssh:8022
     #计算本地唯一摘要
@@ -79,24 +78,23 @@ def register_nat_keepalive_connect(config):
     #向服务端发送注册信息
     data_bytes= json.dumps(data).encode('utf8')
     #发送注册信息
-    print('开始注册服务{0} 端口{1}'.format(local_server_name,nat_server_port))
+    log.info('start authentication ....')
     sock.send(data_bytes)
     id_auth = sock.recv(1024)
     #身份验证
     auth = rsa_decrypt(id_auth);
-    print('身份认证:{0}'.format(auth))
     sock.send(auth)
     auth_res = sock.recv(1024)
     if b'ok' in auth_res:
-        print('身份认证成功')
         #注册服务
         nat_clients[server_addr] = sock
-        print(sock)
         sock_fd = sock.fileno()
         if sock_fd in nat_client_fd_local_server.keys():
             del nat_client_fd_local_server[sock_fd]
-            nat_client_fd_local_server[sock_fd] = '{0}:{1}'.format(local_server_ip,local_server_port)
+        nat_client_fd_local_server[sock_fd] = '{0}:{1}'.format(local_server_ip,local_server_port)
+        log.info('registration server {0} success.'.format(local_server_name))
         return sock
+    log.error('registration failed server {0} to remote host {1}:{2}'.format(local_server_name,net_server_ip,nat_server_port))
     return None
 
 def rsa_decrypt(ciphertext):
@@ -108,42 +106,60 @@ def rsa_decrypt(ciphertext):
 #本地服务监听端口  local_server_port
 def create_local_server_connect(local_server_ip,local_server_port,keep_alive=False):
     local_server_addr = '{0}:{1}'.format(local_server_ip,local_server_port)
-    local_server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    if keep_alive:
-        #长连接
-        local_server.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
-    local_server.connect((local_server_ip,local_server_port))
-    return local_server
+    log.info('create local server addr {0}'.format(local_server_addr))
+    try:
+        local_server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        if keep_alive:
+            #长连接
+            local_server.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
+        local_server.connect((local_server_ip,local_server_port))
+        log.info('connect addr {0} success.'.format(local_server_addr))
+        return local_server
+    except Exception as e:
+        traceback.print_exc()
+    log.error('connect addr {0} failed.'.format(local_server))
+    return None
+    
 
 #处理用户情求 默认超时时间1分钟
 def server_handler(nat_client,timeout=69):
-    
-    nat_client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    log.info('start excution client requests.')
+    nat_client = nat_client
+    #nat_client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     nat_client_fd = nat_client.fileno()
+    print('key {0}  keys {1}'.format(nat_client_fd,nat_client_fd_local_server.keys()))
     if nat_client_fd not in nat_client_fd_local_server.keys():
         return 
     #通过nat 客户端文教描述符取出对应本地服务地址
     local_server_addr = nat_client_fd_local_server[nat_client_fd];
+    log.info('access {0}'.format(local_server_addr))
     #解析地址
     local_server_ip_port = local_server_addr.split(':')
     local_server_ip = local_server_ip_port[0]
     local_server_port = local_server_ip_port[1]
     #获取本地连接
-    local_server = create_local_server_connect(local_server_ip,local_server_port)
+    local_server = create_local_server_connect(local_server_ip,int(local_server_port))
+    if not local_server:
+        return 
+    log.info('connected {0} '.format(local_server_addr))
     local_server_fd = local_server.fileno()
      #读取数据
-    data_bytes = nat_client.recv(buff_size)
-    local_server.send(data_bytes)
+    # data_bytes = nat_client.recv(buff_size)
+    # log.info('first recelve {0}'.format(data_bytes))
+    # local_server.send(data_bytes)
     activity = True
     read_list = [nat_client,local_server]
+   
     while activity:
         try:
+            print('nat-client-fd {0} local-server-fd {1}'.format(nat_client_fd,local_server_fd))
             rs,ws,es = select.select(read_list,[],[],timeout)
             for sock in rs:
                 data_bytes = sock.recv(buff_size)
-                print('data {0}'.format(data_bytes))
+                
                 #将数据转发对方
                 if sock.fileno() == nat_client_fd:
+                    log.info('recelve nat-client {0}'.format(data_bytes))
                     #收到结束符关闭连接
                     if EOF in data_bytes:
                         local_server.close()
@@ -152,6 +168,7 @@ def server_handler(nat_client,timeout=69):
                         break
                     local_server.send(data_bytes)
                 elif sock.fileno() == local_server_fd():
+                    log.info('recelve local-server {0}'.format(data_bytes))
                      #没有数据 结束当前会话
                     if not data_bytes:
                           #发送结束符
@@ -161,20 +178,23 @@ def server_handler(nat_client,timeout=69):
                         activity = False
                     nat_client.send(data_bytes)
         except Exception as e:
+            local_server.close()
+            nat_client.close()
+            activity = False
             traceback.print_exc()
+    del nat_clients[local_server_addr]
 
 
 #一个服务一个进程
 def init_process(config):
-    print(config)
     pool = ThreadPoolExecutor(10)
     timeout = config['timeout']
     local_server_name = config['local_server_name']
     #注册服务
     while True:
         nat_client = register_nat_keepalive_connect(config)
-        print('client : {0}'.format(nat_client))
         if not nat_client:
+            log.error('registration failed wait 30s repeat')
             #注册失败30秒后重试
             time.sleep(30)
             #注册失败
@@ -182,7 +202,6 @@ def init_process(config):
         try:
             rs,ws,es = select.select([nat_client],[],[])
             for sock in rs:
-                print(sock.recv(1024))
                 pool.submit(server_handler,nat_client,timeout)
         except Exception as e:
             traceback.print_exc()
@@ -209,7 +228,6 @@ def start():
     #初始化所有进程
 
     for local_server_name in nat_config.keys():
-        print(local_server_name)
         config = nat_config[local_server_name]
         p = process.Process(target=init_process,args=(config,))
         alive_processs[local_server_name] = p
