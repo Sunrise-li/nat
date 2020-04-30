@@ -88,8 +88,10 @@ def register_nat_keepalive_connect(config):
     sock.send(auth)
     auth_res = sock.recv(1024)
     if b'ok' in auth_res:
+        print('身份认证成功')
         #注册服务
         nat_clients[server_addr] = sock
+        print(sock)
         sock_fd = sock.fileno()
         if sock_fd in nat_client_fd_local_server.keys():
             del nat_client_fd_local_server[sock_fd]
@@ -169,13 +171,14 @@ def init_process(config):
     #注册服务
     while True:
         nat_client = register_nat_keepalive_connect(config)
+        print('client : {0}'.format(nat_client))
         if not nat_client:
             #注册失败30秒后重试
             time.sleep(30)
             #注册失败
             continue
         try:
-            rs,ws,es = select,select([nat_client],[],[])
+            rs,ws,es = select.select([nat_client],[],[])
             for sock in rs:
                 print(sock.recv(1024))
                 #pool.submit(server_handler,nat_client,timeout)
