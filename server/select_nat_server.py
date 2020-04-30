@@ -122,8 +122,10 @@ def tcp_forword(nat_client,client,timeout=60):
                         keep_alive = 'KEEPALIVE'.encode('utf8')
                         sock.send(keep_alive)
                     continue
+                if data:
+                    print(data)
                 if sock.fileno() == nat_client_fd:
-                    print('nat_client_fd {0}'.format(data))
+                    #print('nat_client_fd {0}'.format(data))
                     #收到nat client 的结束符关闭于客户端的连接
                     if EOF in data:
                         client.close()
@@ -131,7 +133,7 @@ def tcp_forword(nat_client,client,timeout=60):
                         break
                     client.send(data)
                 elif sock.fileno() == client_fd:
-                    print('client_fd {0}'.format(data))
+                    #print('client_fd {0}'.format(data))
                     #客户端返回空数据表示连接结束
                     if not data:
                         activity = False

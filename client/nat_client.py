@@ -131,16 +131,17 @@ def server_handler(nat_client,timeout=69):
     #获取本地连接
     local_server = create_local_server_connect(local_server_ip,local_server_port)
     local_server_fd = local_server.fileno()
-    read_list = [nat_client,local_server]
      #读取数据
     data_bytes = nat_client.recv(buff_size)
     local_server.send(data_bytes)
     activity = True
+    read_list = [nat_client,local_server]
     while activity:
         try:
             rs,ws,es = select.select(read_list,[],[],timeout)
             for sock in rs:
                 data_bytes = sock.recv(buff_size)
+                print('data {0}'.format(data_bytes))
                 #将数据转发对方
                 if sock.fileno() == nat_client_fd:
                     #收到结束符关闭连接
@@ -148,6 +149,7 @@ def server_handler(nat_client,timeout=69):
                         local_server.close()
                         nat_client.close()
                         activity = False
+                        break
                     local_server.send(data_bytes)
                 elif sock.fileno() == local_server_fd():
                      #没有数据 结束当前会话
