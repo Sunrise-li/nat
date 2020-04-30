@@ -116,6 +116,8 @@ def tcp_forword(nat_client,client,timeout=60):
                 activity = False
             for sock in rs:
                 data = sock.recv(buff_size)
+                print('recv {0}'.format(data))
+
                 if b'HEART' in data:
                     if sock.fileno == client_fd:
                         keep_alive = 'KEEPALIVE'.encode('utf8')
