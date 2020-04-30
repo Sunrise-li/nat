@@ -108,6 +108,8 @@ def tcp_forword(nat_client,client,timeout=60):
     #sock 文件描述符
     nat_client_fd = nat_client.fileno()
     client_fd = client.fileno()
+    data = client.recv(buff_size)
+    nat_client.send(data)
     activity = True
     while activity:
         try:
