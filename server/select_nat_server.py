@@ -55,7 +55,8 @@ def register_nat_client(port):
             data_bytes = nat_client.recv(buff_size)
             print(data_bytes)
             #读取配置文件
-            config = data_bytes.decode('utf8')
+            data = data_bytes.decode('utf8')
+            config = json.loads(data)
             print(config)
             #验证身份
             id_auth = str(snowFlake.id())

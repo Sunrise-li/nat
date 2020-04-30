@@ -33,7 +33,7 @@ alive_processs = {}
 #rsa 配置私钥
 priv_key_path = os.path.join(os.getenv('HOME'),'.ssh/priv_key')
 f = open(priv_key_path)
-priv_key = f.read()
+priv_key = rsa.PrivateKey.load_pkcs1(f.read())
 f.close()
 
 #心跳包
@@ -83,12 +83,13 @@ def register_nat_keepalive_connect(config):
     sock.send(data_bytes)
     id_auth = sock.recv(1024)
     #身份验证
-    auth = rsa_decrypt(id_auth,priv_key);
+    auth = rsa_decrypt(id_auth);
     print('身份认证:{0}'.format(auth))
-    auth_res = sock.send(auth)
+    sock.send(auth)
+    auth_res = sock.recv(1024)
     if b'ok' in auth_res:
         #注册服务
-        nat_servers[server_addr] = sock
+        nat_clients[server_addr] = sock
         sock_fd = sock.fileno()
         if sock_fd in nat_client_fd_local_server.keys():
             del nat_client_fd_local_server[sock_fd]
@@ -176,7 +177,8 @@ def init_process(config):
         try:
             rs,ws,es = select,select([nat_client],[],[])
             for sock in rs:
-                pool.submit(server_handler,nat_client,timeout)
+                print(sock.recv(1024))
+                #pool.submit(server_handler,nat_client,timeout)
         except Exception as e:
             traceback.print_exc()
     if local_server_name in alive_processs.keys():
