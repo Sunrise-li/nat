@@ -7,6 +7,7 @@ import time
 import rsa 
 import os
 import hashlib
+import traceback
 import multiprocessing as process
 from concurrent.futures import ThreadPoolExecutor 
 from concurrent.futures import ThreadPoolExecutor
@@ -130,24 +131,31 @@ def server_handler(nat_client,timeout=69):
      #读取数据
     data_bytes = nat_client.recv(buff_size)
     local_server.send(data_bytes)
-    while True:
+    activity = True
+    while activity:
         try:
-            rs,ws,es = select.select(read_list,[],[],1000)
+            rs,ws,es = select.select(read_list,[],[],timeout)
             for sock in rs:
                 data_bytes = sock.recv(buff_size)
-                #没有数据 结束当前会话
-                if not data_bytes:
-                    local_server.close()
-                    #发送结束符
-                    nat_client.send(EOF)
                 #将数据转发对方
                 if sock.fileno() == nat_client_fd:
+                    #收到结束符关闭连接
+                    if EOF in data_bytes:
+                        local_server.close()
+                        nat_client.close()
+                        activity = False
                     local_server.send(data_bytes)
                 elif sock.fileno() == local_server_fd():
+                     #没有数据 结束当前会话
+                    if not data_bytes:
+                          #发送结束符
+                        nat_client.send(EOF)
+                        local_server.close()
+                        nat_client.close()
+                        activity = False
                     nat_client.send(data_bytes)
         except Exception as e:
-            print(e)
-            pass
+            traceback.print_exc()
 
 
 #一个服务一个进程
@@ -160,14 +168,16 @@ def init_process(config):
     while True:
         nat_client = register_nat_keepalive_connect(config)
         if not nat_client:
+            #注册失败30秒后重试
+            time.sleep(30)
             #注册失败
-            return
+            continue
         try:
             rs,ws,es = select,select([nat_client],[],[])
             for sock in rs:
                 pool.submit(server_handler,nat_client,timeout)
         except Exception as e:
-            print(e)
+            traceback.print_exc()
     if local_server_name in alive_processs.keys():
         del alive_processs[local_server_name]
 

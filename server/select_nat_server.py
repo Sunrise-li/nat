@@ -46,19 +46,25 @@ def register_nat_client(port):
     register_server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     register_server.bind(('0.0.0.0',port))
     register_server.listen(10)
+    print('开始监听 {0}'.format(port))
     while True:
         try:
             #等待客户端注册
             nat_client,addr = register_server.accept()
+            print(addr)
             data_bytes = nat_client.recv(buff_size)
+            print(data_bytes)
             #读取配置文件
             config = data_bytes.decode('utf8')
+            print(config)
             #验证身份
             id_auth = str(snowFlake.id())
+            print(id_auth)
             #发送认证信息
             nat_client.send(rsa_encrypt(id_auth).encode('utf8'))
             #接受认证结果
             auth_res = nat_client.recv(buff_size).decode('utf8')
+            print(auth_res)
             if auth_res == id_auth:
                 nat_client.send('ok'.encode('utf8'))
                 nat_port = config['nat_port']
@@ -113,8 +119,19 @@ def tcp_forword(nat_client,client,timeout=60):
                         sock.send(keep_alive)
                     continue
                 if sock.fileno() == nat_client_fd:
+                    #收到nat client 的结束符关闭于客户端的连接
+                    if EOF in data:
+                        client.close()
+                        activity = False
+                        break
                     client.send(data)
                 elif sock.fileno() == client_fd:
+                    #客户端返回空数据表示连接结束
+                    if not data:
+                        activity = False
+                        nat_client.send(EOF)
+                        nat_client.close()
+                        break
                     nat_client.send(data)
         except Exception as e:
             traceback.print_exc()
