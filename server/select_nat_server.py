@@ -7,10 +7,9 @@ import time
 import traceback
 import rsa 
 import os
-# import queue
+import uuid
 import sys
 import logging as log
-from snow_flake import SnowFlake
 from multiprocessing import Process,Queue,Manager
 from concurrent.futures import ThreadPoolExecutor
 
@@ -34,8 +33,6 @@ client_addrs = {}
 
 nat_client_addrs = {}
 
-snowFlake = SnowFlake()
-
 pub_key_path = os.path.join(os.getenv('HOME'),'.ssh/pub_key')
 f = open(pub_key_path)
 pub_key = rsa.PublicKey.load_pkcs1(f.read())
@@ -44,8 +41,6 @@ f.close()
 
 def start():
     port = sys.argv[1]
-
-    print('port:{0}'.format(port))
     register_nat_client(int(port))
 
 
@@ -61,7 +56,6 @@ def register_nat_client(port):
         try:
             #等待客户端注册
             nat_client,addr = register_server.accept()
-            print('start register client {0}:{1}'.format(addr[0],addr[1]))
             data_bytes = nat_client.recv(buff_size)
             #读取配置文件
             data = data_bytes.decode('utf8')
@@ -70,8 +64,8 @@ def register_nat_client(port):
             log.info(config)
             log.info('start authentication...')
             #验证身份
-            id_auth = str(snowFlake.id())
-            #发送认证信息
+            id_auth = uuid.uuid1()
+            #发送认证信息gi
             log.info('send to auth info.')
             nat_client.send(rsa_encrypt(id_auth))
             #接受认证结果
