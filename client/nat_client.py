@@ -58,15 +58,15 @@ def register_nat_keepalive_connect(config):
     #超时时间 
     timeout                 = config['timeout']
     server_addr = '{0}:{1}'.format(net_server_ip,nat_server_port)
-    if server_addr in nat_clients.keys():
-        nat_clients[server_addr].close()
-        del nat_clients[server_addr]
+    # if server_addr in nat_clients.keys():
+    #     nat_clients[server_addr].close()
+    #     del nat_clients[server_addr]
     sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     #sock.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
     log.info('start registration service {0} - {1}:{2} remote host {3}:{4}'.format(local_server_name,local_server_ip,local_server_port,net_server_ip,nat_server_port))
     sock.connect((net_server_ip,register_server_port))
     #ssh:8022
-    #计算本地唯一摘要
+    #数字签名
 
     signature = hashlib.sha256(json.dumps(config).encode('utf8')).hexdigest()
     data = {
@@ -116,7 +116,7 @@ def create_local_server_connect(local_server_ip,local_server_port,keep_alive=Fal
         log.info('connect addr {0} success.'.format(local_server_addr))
         return local_server
     except Exception as e:
-        traceback.print_exc()
+        log.error(traceback.format_exc())
     log.error('connect addr {0} failed.'.format(local_server))
     return None
     
@@ -127,7 +127,6 @@ def server_handler(nat_client,timeout=69):
     nat_client = nat_client
     #nat_client = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     nat_client_fd = nat_client.fileno()
-    print('key {0}  keys {1}'.format(nat_client_fd,nat_client_fd_local_server.keys()))
     if nat_client_fd not in nat_client_fd_local_server.keys():
         return 
     #通过nat 客户端文教描述符取出对应本地服务地址
@@ -152,14 +151,11 @@ def server_handler(nat_client,timeout=69):
    
     while activity:
         try:
-            print('nat-client-fd {0} local-server-fd {1}'.format(nat_client_fd,local_server_fd))
             rs,ws,es = select.select(read_list,[],[],timeout)
             for sock in rs:
                 data_bytes = sock.recv(buff_size)
-                
                 #将数据转发对方
                 if sock.fileno() == nat_client_fd:
-                    log.info('recelve nat-client {0}'.format(data_bytes))
                     #收到结束符关闭连接
                     if EOF in data_bytes:
                         local_server.close()
@@ -167,8 +163,7 @@ def server_handler(nat_client,timeout=69):
                         activity = False
                         break
                     local_server.send(data_bytes)
-                elif sock.fileno() == local_server_fd():
-                    log.info('recelve local-server {0}'.format(data_bytes))
+                elif sock.fileno() == local_server_fd:
                      #没有数据 结束当前会话
                     if not data_bytes:
                           #发送结束符
@@ -181,7 +176,7 @@ def server_handler(nat_client,timeout=69):
             local_server.close()
             nat_client.close()
             activity = False
-            traceback.print_exc()
+            log.error(traceback.format_exc())
     del nat_clients[local_server_addr]
 
 
@@ -190,6 +185,7 @@ def init_process(config):
     pool = ThreadPoolExecutor(10)
     timeout = config['timeout']
     local_server_name = config['local_server_name']
+    
     #注册服务
     while True:
         nat_client = register_nat_keepalive_connect(config)
@@ -220,7 +216,6 @@ def inspect_process():
                 p = process.Process(target=init_process,args=(config,))
                 p.start()
                 alive_processs[local_server_name] = p;
-        
             
 def start():
     #加载配置文件
