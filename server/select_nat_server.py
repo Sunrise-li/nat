@@ -61,12 +61,9 @@ def tcp_forword(server_name,nat_client,client,timeout=60):
     read_list = [nat_client,client]
     while activity:
         try:
-            rs,ws,es = select.select(read_list,[],[],10)
+            rs,ws,es = select.select(read_list,[],[],timeout)
             if not rs and not ws and not es:
                 activity = False
-                nat_client.send(EOF)
-                nat_client.close()
-                client.close()
                 break
             for sock in rs:
                 data = sock.recv(buff_size)
@@ -77,8 +74,6 @@ def tcp_forword(server_name,nat_client,client,timeout=60):
                     continue
                 if not data:
                     activity = False
-                    client.close()
-                    nat_client.close()
                     break
                 if sock.fileno() == nat_client_fd:
                     #log.info('client-host {0}:{1} send data to {2} service.'.format(client_ip,client_port,server_name))
@@ -91,11 +86,14 @@ def tcp_forword(server_name,nat_client,client,timeout=60):
                     #客户端返回空数据表示连接结束
                     nat_client.send(data)
         except Exception as e:
-            nat_client.close()
-            client.close()
             activity = False
             log.error(traceback.format_exc())
+    
+    nat_client.send(EOF)
+    nat_client.close()
+    client.close()
     del client_addrs[client]
+    
     log.info('client {0}:{1} to {2} service connect closed.'.format(client_ip,client_port,server_name))
 
 

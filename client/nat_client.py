@@ -171,10 +171,10 @@ def server_handler(nat_client,timeout=69):
                 data_bytes = sock.recv(buff_size)
                 #将数据转发对方
                 #没有数据 结束当前会话
-                # if not data_bytes:
-                #     local_server.close()
-                #     nat_client.close()
-                #     activity = False
+                if not data_bytes:
+                    local_server.close()
+                    nat_client.close()
+                    activity = False
                 if sock.fileno() == nat_client_fd:
                     #收到结束符关闭连接
                     local_server.send(data_bytes)
