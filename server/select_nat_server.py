@@ -152,7 +152,7 @@ def register_nat_client(port):
         except Exception as e:
             log.error(traceback.format_exc())
 def init_server_process(server_name,nat_client_queue,port,timeout):
-    log.info('{0} service process thread-pool-num {1}'.format(server_name,10))
+    log.info('{0} service process thread-pool-num {1}'.format(server_name,timeout))
     pool = ThreadPoolExecutor(10)
     server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     server.bind(('0.0.0.0',port))
@@ -163,6 +163,7 @@ def init_server_process(server_name,nat_client_queue,port,timeout):
         try:
             client,addr = server.accept()
             client_addrs[client] = addr
+            # print('data {0}'.format(client.recv(buff_size)))
             nat_client = nat_client_queue.get()
             pool.submit(tcp_forword,server_name,nat_client,client,timeout)
         except Exception as e:

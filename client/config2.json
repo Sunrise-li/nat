@@ -4,7 +4,7 @@
         "local_server_port":22,
         "local_server_ip":"172.20.10.4",
         "nat_server_port":8022,
-        "net_server_ip":"120.53.22.183",
+        "net_server_ip":"127.0.0.1",
         "register_server_port":8011,
         "keep_alive":true,
         "timeout":1000
@@ -13,8 +13,8 @@
         "local_server_name":"http",
         "local_server_port":8000,
         "local_server_ip":"172.20.10.4",
-        "nat_server_port":8000,
-        "net_server_ip":"120.53.22.183",
+        "nat_server_port":8082,
+        "net_server_ip":"127.0.0.1",
         "register_server_port":8011,
         "keep_alive":true,
         "timeout":1000
@@ -23,8 +23,8 @@
         "local_server_name":"mysql",
         "local_server_port":3306,
         "local_server_ip":"172.20.10.4",
-        "nat_server_port":3316,
-        "net_server_ip":"120.53.22.183",
+        "nat_server_port":8306,
+        "net_server_ip":"127.0.0.1",
         "register_server_port":8011,
         "keep_alive":true,
         "timeout":1000
@@ -34,7 +34,7 @@
         "local_server_port":6379,
         "local_server_ip":"172.20.10.4",
         "nat_server_port":6379,
-        "net_server_ip":"120.53.22.183",
+        "net_server_ip":"127.0.0.1",
         "register_server_port":8011,
         "keep_alive":true,
         "timeout":1000
