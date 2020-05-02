@@ -36,8 +36,20 @@ priv_key = rsa.PrivateKey.load_pkcs1(f.read())
 f.close()
 
 #心跳包
-def heart():
-    pass
+def inspect_server():
+    for server_name in nat_config.keys():
+        config = nat_config[server_name]
+        ip = config['local_server_name']
+        port = config['local_server_port']
+        try:
+            heart = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+            heart.settimeout(3)
+            heart.connect(ip,port)
+            heart.close()
+        except Exception as e:
+            log.error(traceback.format_exc())
+            alive_processs[server_name].close()
+            del alive_processs[server_name]
 
 #和公网服务器创建长连接
 def register_nat_keepalive_connect(config):
