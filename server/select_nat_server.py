@@ -42,6 +42,63 @@ pub_key = rsa.PublicKey.load_pkcs1(f.read())
 f.close()
 
 
+
+
+def tcp_forword(server_name,nat_client,client,timeout=60):
+    log.info('start tcp-forword...')
+    nat_client = nat_client
+    client = client
+    #sock 文件描述符
+
+    nat_client_fd = nat_client.fileno()
+    client_fd = client.fileno()
+    activity = True
+    server_name = server_name
+    client_ip,client_port = client_addrs[client]
+    #data = client.recv(buff_size)
+    #print('client-first-data {0}'.format(data))
+    #nat_client.send(data)
+    read_list = [nat_client,client]
+    while activity:
+        try:
+            rs,ws,es = select.select(read_list,[],[],10)
+            if not rs and not ws and not es:
+                activity = False
+                nat_client.send(EOF)
+                nat_client.close()
+                client.close()
+                break
+            for sock in rs:
+                data = sock.recv(buff_size)
+                if b'HEART' in data:
+                    if sock.fileno == client_fd:
+                        keep_alive = 'KEEPALIVE'.encode('utf8')
+                        sock.send(keep_alive)
+                    continue
+                if not data:
+                    activity = False
+                    client.close()
+                    nat_client.close()
+                    break
+                if sock.fileno() == nat_client_fd:
+                    #log.info('client-host {0}:{1} send data to {2} service.'.format(client_ip,client_port,server_name))
+                    #print('nat_client_fd {0}'.format(data))
+                    #收到nat client 的结束符关闭于客户端的连接
+                    client.send(data)
+                elif sock.fileno() == client_fd:
+                    #log.info('{0} service revert data to {1}:{2}'.format(server_name,client_ip,client_port))
+                    #print('client_fd {0}'.format(data))
+                    #客户端返回空数据表示连接结束
+                    nat_client.send(data)
+        except Exception as e:
+            nat_client.close()
+            client.close()
+            activity = False
+            log.error(traceback.format_exc())
+    del client_addrs[client]
+    log.info('client {0}:{1} to {2} service connect closed.'.format(client_ip,client_port,server_name))
+
+
 def start():
     port = sys.argv[1]
     register_nat_client(int(port))
@@ -106,65 +163,10 @@ def init_server_process(server_name,nat_client_queue,port,timeout):
         try:
             client,addr = server.accept()
             client_addrs[client] = addr
-            
             nat_client = nat_client_queue.get()
             pool.submit(tcp_forword,server_name,nat_client,client,timeout)
         except Exception as e:
             log.error(traceback.format_exc())
-            traceback.print_exc()
-
-def tcp_forword(server_name,nat_client,client,timeout=60):
-    log.info('start tcp-forword...')
-    nat_client = nat_client
-    client = client
-    read_list = [nat_client,client]
-    #sock 文件描述符
-    nat_client_fd = nat_client.fileno()
-    client_fd = client.fileno()
-    activity = True
-    server_name = server_name
-    client_ip,client_port = client_addrs[client]
-    while activity:
-        try:
-            rs,ws,es = select.select(read_list,[],[],timeout)
-            if not rs and not ws and not es:
-                activity = False
-                nat_client.close()
-                client.close()
-                break
-            for sock in rs:
-                data = sock.recv(buff_size)
-                if b'HEART' in data:
-                    if sock.fileno == client_fd:
-                        keep_alive = 'KEEPALIVE'.encode('utf8')
-                        sock.send(keep_alive)
-                    continue
-                if sock.fileno() == nat_client_fd:
-                    log.info('client-host {0}:{1} send data to {2} service.'.format(client_ip,client_port,server_name))
-                    #print('nat_client_fd {0}'.format(data))
-                    #收到nat client 的结束符关闭于客户端的连接
-                    if EOF in data:
-                        client.close()
-                        activity = False
-                        break
-                    client.send(data)
-                elif sock.fileno() == client_fd:
-                    log.info('{0} service revert data to {1}:{2}'.format(server_name,client_ip,client_port))
-                    #print('client_fd {0}'.format(data))
-                    #客户端返回空数据表示连接结束
-                    if not data:
-                        activity = False
-                        nat_client.send(EOF)
-                        nat_client.close()
-                        break
-                    nat_client.send(data)
-        except Exception as e:
-            nat_client.close()
-            client.close()
-            activity = False
-            log.error(traceback.format_exc())
-    del client_addrs[client]
-    log.info('client {0}:{1} to {2} service connect closed.'.format(client_ip,client_port,server_name))
 
 
 
