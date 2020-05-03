@@ -29,13 +29,17 @@ EOF = b'\r\n\r\n0000\r\n\r\n'
 
 #活动中的进程
 alive_processs = {}
-#rsa 配置私钥
-priv_key_path = os.path.join(os.getenv('HOME'),'.ssh/priv_key')
-f = open(priv_key_path)
-priv_key = rsa.PrivateKey.load_pkcs1(f.read())
-f.close()
 
-#心跳包
+#rsa 配置私钥
+def init_priv_key(priv_key_path = None):
+    if not priv_key_path:
+        priv_key_path = os.path.join(os.getenv('HOME'),'.ssh/priv_key')
+    f = open(priv_key_path)
+    priv_key = rsa.PrivateKey.load_pkcs1(f.read())
+    f.close()
+    return priv_key
+
+#心跳测试 如果异常 停止该进程 等待重启
 def inspect_server():
     for server_name in nat_config.keys():
         config = nat_config[server_name]
@@ -53,6 +57,8 @@ def inspect_server():
 
 #和公网服务器创建长连接
 def register_nat_keepalive_connect(config):
+    #初始化私钥
+    priv_key = init_priv_key()
     try:
             #nat映射公网端口
         nat_server_port         = config['nat_server_port']
@@ -71,11 +77,7 @@ def register_nat_keepalive_connect(config):
         #超时时间 
         timeout                 = config['timeout']
         server_addr = '{0}:{1}'.format(net_server_ip,nat_server_port)
-        # if server_addr in nat_clients.keys():
-        #     nat_clients[server_addr].close()
-        #     del nat_clients[server_addr]
         sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        #sock.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
         log.info('start registration service {0} - {1}:{2} remote host {3}:{4}'.format(local_server_name,local_server_ip,local_server_port,net_server_ip,nat_server_port))
         sock.connect((net_server_ip,register_server_port))
         #ssh:8022
@@ -95,7 +97,7 @@ def register_nat_keepalive_connect(config):
         sock.send(data_bytes)
         id_auth = sock.recv(1024)
         #身份验证
-        auth = rsa_decrypt(id_auth);
+        auth = rsa_decrypt(id_auth,priv_key);
         sock.send(auth)
         auth_res = sock.recv(1024)
         if b'ok' in auth_res:
@@ -107,12 +109,14 @@ def register_nat_keepalive_connect(config):
             nat_client_fd_local_server[sock_fd] = '{0}:{1}'.format(local_server_ip,local_server_port)
             log.info('registration server {0} success.'.format(local_server_name))
             return sock
-        log.error('registration failed server {0} to remote host {1}:{2}'.format(local_server_name,net_server_ip,nat_server_port))
+        else:
+            log.error('registration failed server {0} to remote host {1}:{2}'.format(local_server_name,net_server_ip,nat_server_port))
+            sock.close()
     except Exception as e:
         log.error(traceback.format_exc())
     return None
 
-def rsa_decrypt(ciphertext):
+def rsa_decrypt(ciphertext,priv_key):
     return rsa.decrypt(ciphertext,priv_key)
 
 #创建本地服务连接

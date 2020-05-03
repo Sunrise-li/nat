@@ -50,7 +50,6 @@ def tcp_forword(server_name,nat_client,client,timeout=60):
     nat_client = nat_client
     client = client
     #sock 文件描述符
-
     nat_client_fd = nat_client.fileno()
     client_fd = client.fileno()
     activity = True
@@ -59,15 +58,17 @@ def tcp_forword(server_name,nat_client,client,timeout=60):
     #data = client.recv(buff_size)
     #print('client-first-data {0}'.format(data))
     #nat_client.send(data)
-    read_list = [nat_client,client]
+    read_list = [client,nat_client]
     while activity:
         try:
+            print(read_list)
             rs,ws,es = select.select(read_list,[],[],timeout)
             if not rs and not ws and not es:
                 activity = False
                 break
             for sock in rs:
                 data = sock.recv(buff_size)
+                #心跳包
                 if b'HEART' in data:
                     if sock.fileno == client_fd:
                         keep_alive = 'KEEPALIVE'.encode('utf8')
@@ -77,13 +78,9 @@ def tcp_forword(server_name,nat_client,client,timeout=60):
                     activity = False
                     break
                 if sock.fileno() == nat_client_fd:
-                    #log.info('client-host {0}:{1} send data to {2} service.'.format(client_ip,client_port,server_name))
-                    #print('nat_client_fd {0}'.format(data))
                     #收到nat client 的结束符关闭于客户端的连接
                     client.send(data)
                 elif sock.fileno() == client_fd:
-                    #log.info('{0} service revert data to {1}:{2}'.format(server_name,client_ip,client_port))
-                    #print('client_fd {0}'.format(data))
                     #客户端返回空数据表示连接结束
                     nat_client.send(data)
         except Exception as e:
@@ -155,7 +152,7 @@ def register_nat_client(port):
         except Exception as e:
             log.error(traceback.format_exc())
 def init_server_process(server_name,nat_client_queue,port,timeout):
-    log.info('{0} service process thread-pool-num {1}'.format(server_name,timeout))
+    log.info('{0} service process thread-pool-num {1}'.format(server_name,10))
     pool = ThreadPoolExecutor(10)
     server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     server.bind(('0.0.0.0',port))
@@ -167,7 +164,9 @@ def init_server_process(server_name,nat_client_queue,port,timeout):
             client,addr = server.accept()
             client_addrs[client] = addr
             # print('data {0}'.format(client.recv(buff_size)))
-            nat_client = nat_client_queue.get()
+            nat_client = nat_client_queue.get_nowait()
+            # data = client.recv(buff_size)
+            # nat_client.send(data)
             pool.submit(tcp_forword,server_name,nat_client,client,timeout)
         except Exception as e:
             log.error(traceback.format_exc())

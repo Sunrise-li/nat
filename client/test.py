@@ -4,10 +4,13 @@
 import socket
 import select
 import threading
+from concurrent.futures import ThreadPoolExecutor
+
 
 mysql = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 mysql.connect(('172.20.10.4',3306))
 
+pool = ThreadPoolExecutor(10)
 
 server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 #server.setsockopt(socket.SOL_SOCKET,socket.SO_KEEPALIVE,1)
@@ -30,7 +33,7 @@ def tcp_forword(nat_client,client,timeout=60):
     #print('client-first-data {0}'.format(data))
     #nat_client.send(data)
     read_list = [nat_client,client]
-    
+
     while activity:
         print(read_list)
         try:
@@ -67,5 +70,4 @@ def tcp_forword(nat_client,client,timeout=60):
 
 while True:
     client,addr = server.accept()
-    t = threading.Thread(target=tcp_forword,args=(mysql,client,))
-    t.start()
+    pool.submit(tcp_forword,mysql,client)
