@@ -114,7 +114,6 @@ def register_nat_keepalive_connect(config):
 
 def rsa_decrypt(ciphertext):
     return rsa.decrypt(ciphertext,priv_key)
-    
 
 #创建本地服务连接
 #本地服务IP local_server_ip
@@ -135,7 +134,6 @@ def create_local_server_connect(local_server_ip,local_server_port,keep_alive=Fal
     log.error('connect addr {0} failed.'.format(local_server))
     return None
     
-
 #处理用户情求 默认超时时间1分钟
 def server_handler(nat_client,timeout=69):
     log.info('start excution client requests.')
@@ -186,8 +184,6 @@ def server_handler(nat_client,timeout=69):
             activity = False
             log.error(traceback.format_exc())
     del nat_clients[local_server_addr]
-
-
 #一个服务一个进程
 def init_process(config):
     pool = ThreadPoolExecutor(10)
