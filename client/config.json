@@ -7,7 +7,8 @@
         "net_server_ip":"120.53.22.183",
         "register_server_port":8011,
         "keep_alive":true,
-        "timeout":1000
+        "timeout":1000,
+        "thread_pool_num":10
     },
     {
         "local_server_name":"http",
@@ -17,7 +18,8 @@
         "net_server_ip":"120.53.22.183",
         "register_server_port":8011,
         "keep_alive":true,
-        "timeout":1000
+        "timeout":1000,
+        "thread_pool_num":10
     },
     {
         "local_server_name":"mysql",
@@ -27,7 +29,8 @@
         "net_server_ip":"120.53.22.183",
         "register_server_port":8011,
         "keep_alive":true,
-        "timeout":1000
+        "timeout":1000,
+        "thread_pool_num":10
     },
     {
         "local_server_name":"redis",
@@ -37,6 +40,7 @@
         "net_server_ip":"120.53.22.183",
         "register_server_port":8011,
         "keep_alive":true,
-        "timeout":1000
+        "timeout":1000,
+        "thread_pool_num":10
     }
 ]

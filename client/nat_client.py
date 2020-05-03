@@ -6,6 +6,8 @@ import json
 import time
 import rsa 
 import os
+import sys
+import getopt
 import hashlib
 import traceback
 import multiprocessing as process
@@ -22,43 +24,90 @@ nat_client_fd_local_server = {}
 
 #内网穿透sock 负责和服务器建立长连接转发数据包
 nat_clients = {}
+priv_key = ''
+
+
 
 buff_size = 0xffff
 
 EOF = b'\r\n\r\n0000\r\n\r\n'
-
 #活动中的进程
 alive_processs = {}
+def get_args():
+    argv = sys.argv[1:]
+    config_path = ''
+    priv_key_path = ''
+    try:
+        opts,args = getopt.getopt(argv,'hc:k:',['--config=','--priv-key='])
+        for opt,arg in opts:
+            if opt == '-h':
+                print("nat_client -c <config-file> -k <priv-key> ")
+                sys.exit()
+            if opt in('-c','--config'):
+                config_path = arg
+            if opt in('-k','--priv-key'):
+                priv_key_path = arg
+        return (config_path,priv_key_path)
+    except getopt.GetoptError as e:
+        print("nat_client -c <config-file> -k <priv_key> ")
+        sys.exit()
+
+#初始化全局配置
+def init_config(config_path = None):
+    if not config_path:
+        config_path = 'config.json'
+    config_file = open(config_path,'r')
+    config = config_file.read()
+    config_file.close()
+    config_objs = json.loads(config)
+    for conf in config_objs:
+        nat_config[conf['local_server_name']] = conf
 
 #rsa 配置私钥
 def init_priv_key(priv_key_path = None):
+    global priv_key
     if not priv_key_path:
         priv_key_path = os.path.join(os.getenv('HOME'),'.ssh/priv_key')
     f = open(priv_key_path)
     priv_key = rsa.PrivateKey.load_pkcs1(f.read())
     f.close()
-    return priv_key
 
-#心跳测试 如果异常 停止该进程 等待重启
+#每10秒检查并启动出错而关闭的服务
+def daemon_process():
+    while True:
+        time.sleep(10)
+        if not alive_processs:
+            continue
+        for local_server_name in nat_config.keys():
+            if local_server_name not in alive_processs.keys():
+                config = nat_clients[local_server_name]
+                p = process.Process(target=init_process,args=(config,))
+                p.start()
+                alive_processs[local_server_name] = p;
+
+
+#心跳测试 检查服务状态 如有异常停止服务 等待守护进程重启
 def inspect_server():
-    for server_name in nat_config.keys():
-        config = nat_config[server_name]
-        ip = config['local_server_name']
-        port = config['local_server_port']
-        try:
+    while True:
+        for server_name in nat_config.keys():
+            config = nat_config[server_name]
+            ip = config['local_server_ip']
+            port = config['local_server_port']
             heart = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-            heart.settimeout(3)
-            heart.connect(ip,port)
-            heart.close()
-        except Exception as e:
-            log.error(traceback.format_exc())
-            alive_processs[server_name].close()
-            del alive_processs[server_name]
+            try:
+                heart.settimeout(3)
+                heart.connect((ip,port))
+                heart.close()
+            except Exception as e:
+                heart.close()
+                log.error(traceback.format_exc())
+                alive_processs[server_name].kill()
+                del alive_processs[server_name]
+        time.sleep(30)
 
 #和公网服务器创建长连接
 def register_nat_keepalive_connect(config):
-    #初始化私钥
-    priv_key = init_priv_key()
+   
     try:
             #nat映射公网端口
         nat_server_port         = config['nat_server_port']
@@ -76,30 +125,33 @@ def register_nat_keepalive_connect(config):
         local_server_port       = config['local_server_port']
         #超时时间 
         timeout                 = config['timeout']
+        #处理线程池大小
+        thread_pool_num         = config['thread_pool_num']
         server_addr = '{0}:{1}'.format(net_server_ip,nat_server_port)
         sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         log.info('start registration service {0} - {1}:{2} remote host {3}:{4}'.format(local_server_name,local_server_ip,local_server_port,net_server_ip,nat_server_port))
         sock.connect((net_server_ip,register_server_port))
         #ssh:8022
-        #数字签名
-
-        signature = hashlib.sha256(json.dumps(config).encode('utf8')).hexdigest()
         data = {
             'server_name':local_server_name,
             'timeout':timeout,
             'nat_port':nat_server_port,
-            'signature':signature
+            'thread_pool_num':thread_pool_num
         }
+         #数字签名
+        signature = hashlib.sha256(json.dumps(data).encode('utf8')).hexdigest()
+        data['signature'] = signature
+
         #向服务端发送注册信息
         data_bytes= json.dumps(data).encode('utf8')
         #发送注册信息
         log.info('start authentication ....')
         sock.send(data_bytes)
-        id_auth = sock.recv(1024)
+        id_auth = sock.recv(buff_size)
         #身份验证
-        auth = rsa_decrypt(id_auth,priv_key);
+        auth = rsa_decrypt(id_auth);
         sock.send(auth)
-        auth_res = sock.recv(1024)
+        auth_res = sock.recv(buff_size)
         if b'ok' in auth_res:
             #注册服务
             nat_clients[server_addr] = sock
@@ -116,7 +168,7 @@ def register_nat_keepalive_connect(config):
         log.error(traceback.format_exc())
     return None
 
-def rsa_decrypt(ciphertext,priv_key):
+def rsa_decrypt(ciphertext):
     return rsa.decrypt(ciphertext,priv_key)
 
 #创建本地服务连接
@@ -193,7 +245,6 @@ def init_process(config):
     pool = ThreadPoolExecutor(10)
     timeout = config['timeout']
     local_server_name = config['local_server_name']
-    
     #注册服务
     while True:
         nat_client = register_nat_keepalive_connect(config)
@@ -212,42 +263,26 @@ def init_process(config):
     if local_server_name in alive_processs.keys():
         del alive_processs[local_server_name]
 
-def inspect_process():
-
-    while True:
-        time.sleep(10)
-        if not alive_processs:
-            continue
-        for local_server_name in nat_config.keys():
-            if local_server_name not in alive_processs.keys():
-                config = nat_clients[local_server_name]
-                p = process.Process(target=init_process,args=(config,))
-                p.start()
-                alive_processs[local_server_name] = p;
-            
 def start():
-    #加载配置文件
-    load_config()
+    #解析命令行参数
+    config_path,priv_key_path = get_args()
+    #初始化私钥
+    init_priv_key(priv_key_path)
+    #初始化全局配置
+    init_config(config_path)
     #初始化所有进程
-
     for local_server_name in nat_config.keys():
         config = nat_config[local_server_name]
         p = process.Process(target=init_process,args=(config,))
         alive_processs[local_server_name] = p
     for p in alive_processs.values():
         p.start()
+    #监听服务器状态
+    inspect = process.Process(target=inspect_server,args=())
+    inspect.start()
     #启动守护进程
-    p = process.Process(target=inspect_process,args=())
-    p.start()
-
-def load_config():
-    config_file = open('config.json','r')
-    config = config_file.read()
-    config_file.close()
-    config_objs = json.loads(config)
-    for conf in config_objs:
-        nat_config[conf['local_server_name']] = conf
-
+    daemon = process.Process(target=daemon_process,args=())
+    daemon.start()
 
 if __name__ == "__main__":
     start()
