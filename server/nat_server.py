@@ -36,13 +36,14 @@ nat_client_addrs = {}
 
 snowFlake = SnowFlake()
 
-pub_key_path = os.path.join(os.getenv('HOME'),'.ssh/pub_key')
-f = open(pub_key_path)
-pub_key = rsa.PublicKey.load_pkcs1(f.read())
-f.close()
-
-
-
+#读取公钥
+def init_pub_key(pub_key_path = None):
+    if not pub_key_path:
+        pub_key_path = os.path.join(os.getenv('HOME'),'.ssh/pub_key')
+    f = open(pub_key_path)
+    pub_key = rsa.PublicKey.load_pkcs1(f.read())
+    f.close()
+    return pub_key
 
 def tcp_forword(server_name,nat_client,client,timeout=60):
     log.info('start tcp-forword...')
@@ -102,7 +103,7 @@ def start():
     register_nat_client(int(port))
 
 
-def rsa_encrypt(s):
+def rsa_encrypt(s,pub_key):
     return rsa.encrypt(s.encode('utf8'),pub_key)
 
 def register_nat_client(port):
@@ -110,6 +111,8 @@ def register_nat_client(port):
     register_server.bind(('0.0.0.0',port))
     register_server.listen(10)
     log.info('nat-register service listen port {0}'.format(port))
+    #读取公钥
+    pub_key = init_pub_key()
     while True:
         try:
             #等待客户端注册
@@ -126,11 +129,10 @@ def register_nat_client(port):
             id_auth = str(snowFlake.id())
             #发送认证信息
             log.info('send to auth info.')
-            nat_client.send(rsa_encrypt(id_auth))
+            nat_client.send(rsa_encrypt(id_auth,pub_key))
             #接受认证结果
             auth_res = nat_client.recv(buff_size).decode('utf8')
             if auth_res == id_auth:
-                log.info('authentication success.')
                 nat_client.send('ok'.encode('utf8'))
                 nat_port = config['nat_port']
                 timeout = config['timeout']
@@ -146,7 +148,10 @@ def register_nat_client(port):
                     server_processs[key] = p
                     p.start()
                     log.info('start {0} service process'.format(server_name))
-                log.info('client {0}:{1}  register success'.format(addr[0],addr[1]))
+                    log.info('client {0}:{1}  register success'.format(addr[0],addr[1]))
+            else:
+                nat_client.close()
+                log.info('client {0}:{1}  register failed.'.format(addr[0],addr[1]))
         except Exception as e:
             log.error(traceback.format_exc())
 def init_server_process(server_name,nat_client_queue,port,timeout):
@@ -166,8 +171,6 @@ def init_server_process(server_name,nat_client_queue,port,timeout):
             pool.submit(tcp_forword,server_name,nat_client,client,timeout)
         except Exception as e:
             log.error(traceback.format_exc())
-
-
 
 if __name__ == "__main__":
     start()
