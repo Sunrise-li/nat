@@ -1,15 +1,1 @@
-2020-05-03 18:54:17,543 - pid:18687 - tid:4615163328 - [line:109] - INFO: nat-register service listen port 8011
-2020-05-03 18:54:23,286 - pid:18687 - tid:4615163328 - [line:122] - INFO: {'server_name': 'mysql', 'timeout': 1000, 'nat_port': 8306, 'signature': 'b5954ed9df8c9e722c2b2344931b8148959abee858cacc77261dbf01f0c9ad8c'}
-2020-05-03 18:54:23,286 - pid:18687 - tid:4615163328 - [line:123] - INFO: start authentication...
-2020-05-03 18:54:23,286 - pid:18687 - tid:4615163328 - [line:127] - INFO: send to auth info.
-start register client 127.0.0.1:64003
-2020-05-03 18:54:23,321 - pid:18687 - tid:4615163328 - [line:142] - INFO: init mysql service process
-2020-05-03 18:54:23,322 - pid:18687 - tid:4615163328 - [line:146] - INFO: start mysql service process
-2020-05-03 18:54:23,323 - pid:18687 - tid:4615163328 - [line:147] - INFO: client 127.0.0.1:64003  register success
-2020-05-03 18:54:23,326 - pid:18708 - tid:4615163328 - [line:154] - INFO: mysql service process thread-pool-num 1000
-2020-05-03 18:54:23,327 - pid:18708 - tid:4615163328 - [line:159] - INFO: mysql service process listen 8306
-2020-05-03 18:54:35,884 - pid:18708 - tid:123145531912192 - [line:49] - INFO: start tcp-forword...
-2020-05-03 18:55:30,078 - pid:18708 - tid:123145531912192 - [line:94] - INFO: client 127.0.0.1:64006 to mysql service connect closed.
-2020-05-03 18:55:30,082 - pid:18687 - tid:4615163328 - [line:122] - INFO: {'server_name': 'mysql', 'timeout': 1000, 'nat_port': 8306, 'signature': 'b5954ed9df8c9e722c2b2344931b8148959abee858cacc77261dbf01f0c9ad8c'}
-2020-05-03 18:55:30,083 - pid:18687 - tid:4615163328 - [line:123] - INFO: start authentication...
-2020-05-03 18:55:30,083 - pid:18687 - tid:4615163328 - [line:127] - INFO: send to auth info.
+2020-05-05 08:33:57,357 - pid:24659 - tid:4604779968 - [line:87] - INFO: nat-register service listen port 8011

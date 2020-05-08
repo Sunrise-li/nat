@@ -211,13 +211,8 @@ def server_handler(nat_client,timeout=69):
         return 
     log.info('connected {0} '.format(local_server_addr))
     local_server_fd = local_server.fileno()
-     #读取数据
-    # data_bytes = nat_client.recv(buff_size)
-    # log.info('first recelve {0}'.format(data_bytes))
-    # local_server.send(data_bytes)
     activity = True
     read_list = [nat_client,local_server]
-   
     while activity:
         try:
             rs,ws,es = select.select(read_list,[],[],timeout)

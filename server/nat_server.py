@@ -84,7 +84,7 @@ def register_nat_client(port):
     register_server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     register_server.bind(('0.0.0.0',int(port)))
     register_server.listen(10)
-    log.info('nat-register service listen port {0}'.format(port))
+    log.info('nat-register server listen port {0}'.format(port))
     while True:
         try:
             #等待客户端注册
@@ -123,11 +123,11 @@ def register_nat_client(port):
                 else:
                     nat_clients[key].put(nat_client)
                 if key not in server_processs.keys():
-                    log.info('init {0} service process'.format(server_name))
+                    log.info('init {0} process'.format(server_name))
                     p = Process(target=init_server_process,args=(server_name,nat_clients[key],nat_port,thread_pool_num,timeout,))
                     server_processs[key] = p
                     p.start()
-                    log.info('start {0} service process'.format(server_name))
+                    log.info('start {0} process'.format(server_name))
                     log.info('client {0}:{1}  register success'.format(addr[0],addr[1]))
             else:
                 #认证失败
@@ -140,27 +140,24 @@ def register_nat_client(port):
         except Exception as e:
             log.error(traceback.format_exc())
 def init_server_process(server_name,nat_client_queue,port,thread_pool_num=10,timeout=60):
-    log.info('{0} service process thread-pool-num {1}'.format(server_name,thread_pool_num))
+    log.info('{0} process thread-pool-num {1}'.format(server_name,thread_pool_num))
     pool = ThreadPoolExecutor(thread_pool_num)
     server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
     server.bind(('0.0.0.0',port))
     server.listen(20)
-    log.info('{0} service process listen {1}'.format(server_name,port))
+    log.info('{0} process listen {1}'.format(server_name,port))
     key = str(port)
     while True:
         try:
             client,addr = server.accept()
             client_addrs[client] = addr
-            # print('data {0}'.format(client.recv(buff_size)))
             nat_client = nat_client_queue.get_nowait()
-            # data = client.recv(buff_size)
-            # nat_client.send(data)
             pool.submit(tcp_forword,server_name,nat_client,client,timeout)
         except Exception as e:
             log.error(traceback.format_exc())
 
 def tcp_forword(server_name,nat_client,client,timeout=60):
-    log.info('start tcp-forword...')
+    log.info('tcp-forword...')
     nat_client = nat_client
     client = client
     #sock 文件描述符
