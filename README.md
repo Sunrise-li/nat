@@ -1,12 +1,9 @@
 #### client
-
-	> 
-	>
-	> ​	运行 python3  nat_client -c <config-file> -k <priv-key>
-	>
-	> ​		-c 配置文件
-	>
-	> ​		-k 私钥
+> python3  nat_client -c <config-file> -k <priv-key>
+>
+> -c 配置文件
+>
+> -k 私钥
 
 #### server
 
